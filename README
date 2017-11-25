@@ -5,7 +5,8 @@
     1)gameLogic.py - файл с кодом логики игры.
     2)bot.py - код бота для игры в шашки.
     3)checkersException.py - код Exception классами проекта.
-    4)Checkers.py - код с Checkers. 
+	4)logParser.py - код парсера для сохранения/загрузки игры.
+    5)Checkers.py - код с Checkers. 
 Для запуска на системе Windows войдите в папку checkers, откройте консоль и введите
     py -3 Checkers.py
 Для запуска на Unix системах войдите в папку checkers, откройте терминал и введите
