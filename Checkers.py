@@ -1,13 +1,18 @@
-from tkinter import *
-import game_logic
-import checkers_exception
-from functools import partial
-from tkinter import messagebox
-from tkinter import filedialog
-import log_parser
-import bot
-import argparse
-import time
+
+try:
+    from tkinter import *
+    import game_logic
+    import checkers_exception
+    from functools import partial
+    from tkinter import messagebox
+    from tkinter import filedialog
+    import log_parser
+    import bot
+    import argparse
+    import time
+except Exception as e:
+    print('Game modules not found: "{}"'.format(e), file=sys.stderr)
+    sys.exit(1)
 
 
 class AdvancedButton(Button):
