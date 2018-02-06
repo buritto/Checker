@@ -1,27 +1,28 @@
 from tkinter import *
-import gameLogic
-import checkersException
+import game_logic
+import checkers_exception
 from functools import partial
 from tkinter import messagebox
 from tkinter import filedialog
-import logParser
+import log_parser
 import bot
 import argparse
+import time
 
 
-class Advanced_Button(Button):
+class AdvancedButton(Button):
 
-    def __init__(self, pos_x, pos_y, master = None):
+    def __init__(self, pos_x, pos_y, master=None):
         Button.__init__(self, master)
         self.pos_x = pos_x
         self.pos_y = pos_y
 
 
-class Basic_Users_interface():
+class BasicUsersInterface:
 
     def check_winner(self):
         res = self.game.initialize_win()
-        if res != None:
+        if res is not None:
             if res == 'first':
                 messagebox.showinfo('Message', 'Red won')
             else:
@@ -45,11 +46,11 @@ class Basic_Users_interface():
             else:
                 self.game.second_player.take_chip(x, y)
                 self.draw_correct_move(self.game.second_player)
-        except checkersException.InvalidTakeChipsException:
+        except checkers_exception.InvalidTakeChipsException:
             messagebox.showerror('Error', 'Wrong checker is taken')
             return
-        except checkersException.InvalidEndJump:
-            messagebox.showerror('Error', 'Your move is not completed ')
+        except checkers_exception.InvalidEndJump:
+            messagebox.showerror('Error', 'Your move is not completed')
             return
 
     def change_parties(self, player):
@@ -75,6 +76,16 @@ class Basic_Users_interface():
                 self.game.second_player = self.game.first_player
                 self.game.first_player = new_party
 
+    def bot_do(self):
+        self.bot.take()
+        res = self.bot.do_jump()
+        while self.bot.player.is_block:
+            self.draw()
+            res = self.bot.do_jump()
+            time.sleep(0.7)
+            self.draw()
+        time.sleep(0.7)
+        return res
 
     def make_jump(self, x, y):
         try:
@@ -88,10 +99,10 @@ class Basic_Users_interface():
                 self.draw_correct_move(self.second_player)
                 self.change_parties(self.game.second_player)
             self.log.change_fild_text(self.dimension, self.game.field)
-        except checkersException.InvalidJump:
+        except checkers_exception.InvalidJump:
             messagebox.showerror('Error', 'Wrong move')
             return
-        except checkersException.InvalidJumpAttack:
+        except checkers_exception.InvalidJumpAttack:
             messagebox.showerror('Error', 'You must attack your enemy')
             return
         self.draw()
@@ -105,12 +116,12 @@ class Basic_Users_interface():
             main()
             return
 
-        if result_jump != 0 and self.human != None and self.bot.bot_mode == True:
+        if result_jump != 0 and self.human is not None and self.bot.bot_mode:
             if self.check_winner():
                 self.root.destroy()
                 main()
                 return
-            self.progress += self.bot.bot_do()
+            self.progress += self.bot_do()
             self.change_parties(self.bot.player)
             self.log.change_fild_text(self.dimension, self.game.field)
             self.draw()
@@ -126,7 +137,7 @@ class Basic_Users_interface():
             for y in range(start_step, self.game.dimension, 2):
                 pos_x = x
                 pos_y = y
-                if type(self.game.field[x][y]) == gameLogic.Chip:
+                if type(self.game.field[x][y]) == game_logic.Chip:
                     self.list_button[x][y]['command'] = partial(self.take_chip, pos_x, pos_y)
                     if self.game.field[x][y].party == 'white':
                         if self.game.field[x][y].is_king:
@@ -143,26 +154,28 @@ class Basic_Users_interface():
                     img = PhotoImage(file='image/black.gif')
                 self.list_save_image.append(img)
                 self.list_button[x][y]['image'] = img
+        self.root.update()
 
     def save_game(self):
         self.log.save_file()
 
-    def __init__(self, root, party=None, dimension = 10, file_path = ""):
-        if (file_path == ""):
-            self.log = logParser.gameLogParser('log.ck')
-            self.game = gameLogic.PlayingField(dimension)
+    def __init__(self, root, party=None, dimension=10, file_path="", unusual_mode=False):
+        self.root = root
+        if file_path == "":
+            self.log = log_parser.GameLogParser('log.ck')
+            self.game = game_logic.PlayingField(dimension, None, unusual_mode)
             self.human = party
             self.dimension = dimension
             self.progress = 1
             self.log.create_struct_log(party, self.dimension, self.progress)
         else:
-            self.log = logParser.gameLogParser(file_path)
+            self.log = log_parser.GameLogParser(file_path)
             self.log.dimension = int(self.log.get_dimension())
             self.dimension = self.log.dimension
             self.progress = self.log.get_progress() + 1
             self.log.count_write = self.progress + 0
             field_save = self.log.get_field()
-            self.game = gameLogic.PlayingField(self.dimension, field_save)
+            self.game = game_logic.PlayingField(self.dimension, field_save)
             if self.log.get_is_human() == 'none':
                 self.human = None
                 party = None
@@ -177,20 +190,20 @@ class Basic_Users_interface():
         for x in range(0, self.game.dimension):
             new_line = []
             for y in range(0, self.game.dimension):
-                new_line.append(Advanced_Button(x, y, self.root))
+                new_line.append(AdvancedButton(x, y, self.root))
                 img = PhotoImage(file='image/white.gif')
                 self.list_save_image.append(img)
                 new_line[y]['image'] = img
             self.list_button.append(new_line)
-        self.is_with_bot  = False
-        if party != None :
+        self.is_with_bot = False
+        if party is not None:
             self.is_with_bot = True
             if party == 'first':
                 self.bot = bot.Bot(self.second_player)
             else:
                 self.bot = bot.Bot(self.first_player)
                 if self.progress % 2 != 0:
-                    self.progress += self.bot.bot_do()
+                    self.progress += self.bot_do()
                     self.log.change_fild_text(self.dimension, self.game.field)
         self.draw()
         for x in range(0, self.game.dimension):
@@ -202,38 +215,45 @@ class Basic_Users_interface():
         self.root.mainloop()
 
 
-
-class GameMenu():
+class GameMenu:
 
     def __init__(self, root):
         self.list_image = []
         self.root = root
         self.draw_menu(self.root)
+        self.is_unusual = IntVar()
 
     def choose_dimension(self):
         self.clear_form(self.root)
+        check_is_mod_unusual = Checkbutton(self.root, text=u'starting with unusual mod', variable=self.is_unusual,
+                                           onvalue=1, offvalue=0)
         label = Label(self.root, text='Choose dimension')
         entry_dimension = Entry(self.root)
-        start_mode_coop = Button(self.root, text='Coop mode', width=10, height=3,
-                                command=partial(self.start_game, None, self.root, entry_dimension))
+        start_mode_coop = Button(self.root, text='Start game', width=10, height=3,
+                                 command=partial(self.start_game, None, self.root,
+                                                 entry_dimension))
         entry_dimension.grid(row=0, column=2)
         label.grid(row=0, column=0)
-        start_mode_coop.grid(row=1, pady=10, padx=8, column=1)
+        back = Button(self.root, text='Back', width=5, command=partial(self.draw_menu, self.root))
+        back.grid(row=3, column=1, pady=10, padx=0)
+        start_mode_coop.grid(row=2, pady=10, padx=8, column=1)
+        check_is_mod_unusual.grid(row=1, column=0)
 
     def start_game(self, party, root, entry):
         dimension = entry.get()
         if len(dimension) == 0:
             self.clear_form(root)
-            basic_game = Basic_Users_interface(root, party)
+            BasicUsersInterface(root, party, 10, "", self.is_unusual.get())
         else:
             try:
-                if int(dimension) < 5 or  int(dimension) % 2 == 1:
-                    messagebox.showerror('Error dimension', 'Incorrect dimension: dimension should be more 4 and be even ')
+                if int(dimension) < 5 or int(dimension) % 2 == 1:
+                    messagebox.showerror('Error dimension',
+                                         'Incorrect dimension: dimension should be more 4 and be even ')
                     self.clear_form(self.root)
                     self.draw_menu(self.root)
                     return
                 self.clear_form(root)
-                basic_game = Basic_Users_interface(root, party, int(dimension))
+                BasicUsersInterface(root, party, int(dimension), "", self.is_unusual.get())
             except ValueError:
                 messagebox.showerror('Error dimension', 'Set incorrect dimension')
                 self.draw_menu(self.root)
@@ -245,30 +265,36 @@ class GameMenu():
 
     def take_party(self, root):
         self.clear_form(root)
+        check_is_mod_unusual = Checkbutton(self.root, text=u'starting with unusual mod', variable=self.is_unusual,
+                                           onvalue=1, offvalue=0)
         img_first = PhotoImage(file='image/first.gif')
         self.list_image.append(img_first)
         img_second = PhotoImage(file='image/second.gif')
         self.list_image.append(img_second)
         entry_dimension = Entry(root)
-        first_player = Button(root, text='Red', image=img_first, command=partial(self.start_game, 'first', root, entry_dimension))
-        second_player = Button(root, text='Blue', image=img_second, command=partial(self.start_game, 'second', root, entry_dimension))
+        first_player = Button(root, text='Red', image=img_first, command=partial(self.start_game, 'first',
+                                                                                 root, entry_dimension))
+        second_player = Button(root, text='Blue', image=img_second, command=partial(self.start_game, 'second',
+                                                                                    root, entry_dimension))
         label = Label(root, text='Choose dimension')
         back = Button(root, text='Back', width=5, command=partial(self.draw_menu, root))
-        Label(text='Change party').grid(row=0, column=1, padx=8, pady=20)
-        first_player.grid(row=1, column=0, pady=20, padx=8)
-        second_player.grid(row=1, column=2, pady=20, padx=8)
-        entry_dimension.grid(row=2, column=2)
-        label.grid(row=2, column=0)
-        back.grid(row=3, column=1, pady=10, padx=8)
+        Label(text='Choose party').grid(row=0, column=1, padx=8, pady=20)
+        first_player.grid(row=4, column=0, pady=20, padx=8)
+        second_player.grid(row=4, column=2, pady=20, padx=8)
+        entry_dimension.grid(row=1, column=2)
+        label.grid(row=1, column=0)
+        back.grid(row=5, column=1, pady=10, padx=8)
+        check_is_mod_unusual.grid(row=3, column=0)
 
     def loading(self):
-        open_file_path = filedialog.askopenfilename(title = "Select file", defaultextension=".ck", filetypes=(('ck files','*.ck'),("all files","*.*")))
+        open_file_path = filedialog.askopenfilename(title="Select file", defaultextension=".ck",
+                                                    filetypes=(('ck files', '*.ck'), ("all files", "*.*")))
         if len(open_file_path) != 0:
             self.start_game_from_file(open_file_path)
 
-    def start_game_from_file(self, fileName):
+    def start_game_from_file(self, file_name):
         self.clear_form(self.root)
-        basic_game = Basic_Users_interface(self.root, file_path=fileName)
+        BasicUsersInterface(self.root, file_path=file_name)
 
     def draw_menu(self, root):
         self.clear_form(root)
@@ -288,38 +314,36 @@ class GameMenu():
 
 
 def main():
-    mode = ''
     root = Tk()
     menu = GameMenu(root)
     parser = argparse.ArgumentParser()
-    parser.add_argument("-l","--load",metavar="path", help="load game from file", type=str)
-    parser.add_argument("-m", "--multi", metavar="dimension" ,help="start multiplayer game with dimension", type=int)
-    parser.add_argument("-s", "--singleplayer", metavar=("party", "dimension"), help="start singlplayer", nargs=2, type=int)
+    parser.add_argument("-l", "--load", metavar="path", help="load game from file", type=str)
+    parser.add_argument("-m", "--multi", metavar="dimension", help="start multiplayer game with dimension", type=int)
+    parser.add_argument("-s", "--singleplayer", metavar=("party", "dimension"), help="start singlplayer",
+                        nargs=2, type=int)
     args = parser.parse_args()
-    if (args.load):
-        pathFile = args.load
-        print()
-        if (pathFile.split('.')[-1] != 'ck'):
-            raise checkersException.InvalidPathToFileLoad
-        menu.start_game_from_file(pathFile)
-    if (args.multi):
-        if (args.multi % 2 != 0 or args.multi <=4):
-            raise checkersException.InvalidDimension()
+    if args.load:
+        path_file = args.load
+        if path_file.split('.')[-1] != 'ck':
+            raise checkers_exception.InvalidPathToFileLoad
+        menu.start_game_from_file(path_file)
+    if args.multi:
+        if args.multi % 2 != 0 or args.multi <= 4:
+            raise checkers_exception.InvalidDimension()
         menu.clear_form(root)
-        basic_game = Basic_Users_interface(root, None, args.multi)
-    if (args.singleplayer):
-        if (args.singleplayer[1] % 2 != 0 or args.singleplayer[1] <=4):
-            raise checkersException.InvalidDimension()
-        if (args.singleplayer[0] != 1 and args.singleplayer[0] != 2):
-            raise checkersException.InvalidParty
+        BasicUsersInterface(root, None, args.multi)
+    if args.singleplayer:
+        if args.singleplayer[1] % 2 != 0 or args.singleplayer[1] <= 4:
+            raise checkers_exception.InvalidDimension()
+        if args.singleplayer[0] != 1 and args.singleplayer[0] != 2:
+            raise checkers_exception.InvalidParty
         party = 'first'
-        if (args.singleplayer[0] == 2):
-            party='second'
+        if args.singleplayer[0] == 2:
+            party = 'second'
         menu.clear_form(root)
-        basic_game = Basic_Users_interface(root, party, args.singleplayer[1])
+        BasicUsersInterface(root, party, args.singleplayer[1])
     root.mainloop()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
-

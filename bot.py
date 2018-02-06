@@ -1,11 +1,11 @@
 import random
 
 
-class Bot():
+class Bot:
 
     def __init__(self, player):
         self.player = player
-        self.bot_mode = True;
+        self.bot_mode = True
 
     def find_chip(self):
         if len(self.player.chips_for_fight) > 0:
@@ -22,7 +22,7 @@ class Bot():
 
     def find_target(self):
         x = -1
-        if (self.player.party == 'white'):
+        if self.player.party == 'white':
             x = 1
         target_is_find = False
         set_coord = []
@@ -48,11 +48,3 @@ class Bot():
         target = self.find_target()
         res = self.player.make_jump(target[0], target[1], self.player.party)
         return res
-
-    def bot_do(self):
-        self.take()
-        res = self.do_jump()
-        while self.player.is_block:
-            res = self.do_jump()
-        return res
-
